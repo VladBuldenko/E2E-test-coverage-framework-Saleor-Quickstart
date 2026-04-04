@@ -5,6 +5,14 @@ This project is focused on test automation for **Saleor Quickstart**, a ready-to
 
 The repository contains **UI and API tests** that verify core user scenarios, key business logic, and application stability. The goal of this project is to demonstrate my skills in test automation, show my approach to building test coverage for a real web application, and highlight my experience with modern automation tools.
 
+## Application Under Test
+The application under test in this project is **Saleor Quickstart**.
+
+Repository: https://github.com/saleor/quickstart
+
+Saleor Quickstart is used here as a locally deployed e-commerce environment for automated testing practice and portfolio demonstration.
+
+
 ## Educational and Portfolio Purpose
 This repository is created for **educational, research, and portfolio purposes only**.
 
