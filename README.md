@@ -12,7 +12,6 @@ Repository: https://github.com/saleor/quickstart
 
 Saleor Quickstart is used here as a locally deployed e-commerce environment for automated testing practice and portfolio demonstration.
 
-
 ## Educational and Portfolio Purpose
 This repository is created for **educational, research, and portfolio purposes only**.
 
@@ -97,6 +96,16 @@ The project may also include:
 
 ---
 
+## Test Architecture & Patterns
+To ensure scalability and maintainability for a complex e-commerce platform, this framework implements several advanced design patterns:
+
+- **Component-Based UI Architecture:** Instead of monolithic Page Objects, UI elements are modeled as independent, reusable components (e.g., `ProductCard`, `CartDrawer`). Pages act as containers for these components.
+- **Service Object Pattern:** GraphQL API interactions are abstracted into dedicated clients, separating the test logic from the underlying HTTP and GraphQL query execution.
+- **API Preconditions for UI Tests:** Tests utilize the API layer to rapidly set up the necessary application state (e.g., creating a cart with items) before validating final scenarios via the UI, dramatically increasing test speed and stability.
+- **Builder & Factory Patterns:** Complex test data (like users and products) is generated dynamically during runtime using Builders, ensuring data uniqueness and avoiding collisions during parallel execution.
+
+---
+
 ## Project Structure
 ```bash
 saleor-test-automation/
@@ -108,7 +117,23 @@ saleor-test-automation/
 ├── playwright.config.ts
 ├── tsconfig.json
 │
-├── tests/
+├── src/                          # Core framework architecture
+│   ├── api-clients/              # GraphQL service objects
+│   │   ├── graphql-queries/      # .graphql query files
+│   │   ├── dashboard-api.ts      # Admin operations API client
+│   │   └── storefront-api.ts     # Customer operations API client
+│   │
+│   ├── ui/                       # UI automation layer
+│   │   ├── components/           # Reusable UI widgets
+│   │   └── pages/                # Page definitions combining components
+│   │
+│   ├── data/                     # Test data management
+│   │   ├── builders/             # Builder patterns for dynamic data generation
+│   │   └── models/               # DTOs and interfaces for data validation
+│   │
+│   └── utils/                    # Framework helpers (logger, config parsers)
+│
+├── tests/                        # Test execution suites
 │   ├── ui/
 │   │   ├── dashboard/
 │   │   ├── storefront/
@@ -116,22 +141,8 @@ saleor-test-automation/
 │   ├── api/
 │   │   ├── graphql/
 │   │   └── smoke/
-│   └── fixtures/
-│
-├── pages/
-│   ├── dashboard/
-│   └── storefront/
-│
-├── utils/
-│   ├── api/
-│   ├── config/
-│   ├── data/
-│   └── helpers/
-│
-├── test-data/
-│   ├── users/
-│   ├── products/
-│   └── api/
+│   ├── e2e/                      # Hybrid tests (API preconditions + UI checks)
+│   └── fixtures/                 # Playwright test fixtures
 │
 ├── docs/
 │   ├── test-plan.md
@@ -142,122 +153,143 @@ saleor-test-automation/
     └── workflows/
         └── ci.yml
 
-
-## Test Environment Setup
-
+Test Environment Setup
 This automation project is designed to work with a separately cloned and locally deployed Saleor Quickstart environment.
 
 Recommended local setup:
 
+Plaintext
 projects/
 ├── saleor-quickstart/         # application under test
 └── saleor-test-automation/    # this test automation project
-Important
-
+Important:
 The application under test and the test automation framework should be kept in separate directories.
 
 saleor-quickstart contains the application
+
 saleor-test-automation contains the automated tests
 
 This makes the project cleaner, easier to maintain, and closer to a real-world automation setup.
 
-##  Prerequisites
-
+Prerequisites
 Before running the tests, make sure the following tools are installed:
 
 Node.js
+
 npm
+
 Playwright
+
 Git
+
 A locally running Saleor Quickstart environment
+
 Installation
+Clone this repository:
 
-## Clone this repository:
-
+Bash
 git clone <your-repository-url>
 cd saleor-test-automation
-
 Install dependencies:
 
+Bash
 npm install
-
 Install Playwright browsers:
 
+Bash
 npx playwright install
 Environment Variables
-
 Create a local environment file based on .env.example:
 
-cp .env.example .env
 
-Example .env file:
-
-DASHBOARD_URL=http://localhost:9000
-STOREFRONT_URL=http://localhost:3000
-API_URL=http://localhost:8000/graphql/
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=admin
 Running Saleor Quickstart
-
 Before executing the tests, make sure Saleor Quickstart is cloned and started locally in a separate folder.
-
 The tests in this repository are designed to run against that local environment.
 
-## Test Execution
+Test Execution
 Run all tests
+
+Bash
 npx playwright test
 Run UI tests
+
+Bash
 npx playwright test tests/ui
 Run API tests
+
+Bash
 npx playwright test tests/api
 Run smoke tests
+
+Bash
 npx playwright test --grep @smoke
 Run tests in headed mode
+
+Bash
 npx playwright test --headed
 Open Playwright HTML report
+
+Bash
 npx playwright show-report
 Reporting
-
-## Test execution results can include:
+Test execution results can include:
 
 passed and failed test cases
+
 execution logs
+
 screenshots on failure
+
 traces
+
 HTML reports
 
 These artifacts help analyze failures and improve test stability.
 
-## Current Scope
-
+Current Scope
 The current focus of the project is:
 
 basic UI automation
-GraphQL API validation
-smoke coverage for critical components
-initial test framework structure
-Future Improvements
 
+GraphQL API validation
+
+smoke coverage for critical components
+
+initial test framework structure
+
+Future Improvements
 Planned improvements for the project include:
 
 deeper Dashboard functional coverage
-broader Storefront coverage
-reusable API client utilities
-test data management improvements
-CI/CD pipeline integration
-performance testing
-stress testing
-baseline security testing
-optional Python-based API test layer
-Project Goals
 
+broader Storefront coverage
+
+reusable API client utilities
+
+test data management improvements
+
+CI/CD pipeline integration
+
+performance testing
+
+stress testing
+
+baseline security testing
+
+optional Python-based API test layer
+
+Project Goals
 This project is intended to demonstrate:
 
 practical UI and API test automation skills
-test framework design and structure
-real-world test coverage approach
-maintainable and scalable test organization
-ability to work with modern automation tools in a portfolio-style project
-Author
 
+test framework design and structure
+
+real-world test coverage approach
+
+maintainable and scalable test organization
+
+ability to work with modern automation tools in a portfolio-style project
+
+Author
 This repository is maintained as a personal test automation portfolio project focused on demonstrating practical QA Automation engineering skills.

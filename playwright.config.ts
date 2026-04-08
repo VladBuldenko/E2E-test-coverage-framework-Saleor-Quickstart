@@ -1,56 +1,84 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+/**
+ * Load environment variables from .env file.
+ * This is a best practice for Senior-level projects to avoid hardcoding environment-specific data.
+ */
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
-  // Directory that contains the test files.
+  // Directory where test files are located
   testDir: './tests',
-
-  // Maximum time one test is allowed to run.
+  
+  // Maximum time for one test (30 seconds)
   timeout: 30_000,
-
-  // Configuration for Playwright assertions.
-  expect: {
-    // Maximum time expect() should wait for the condition to be met.
-    timeout: 5_000,
-  },
-
-  // Controls whether all tests in all files can run fully in parallel.
-  fullyParallel: false,
-
-  // Fails the build on CI if test.only is accidentally committed.
+  
+  // Configuration for assertions
+  expect: { timeout: 5_000 },
+  
+  // Enable parallel execution to speed up test runs
+  fullyParallel: true, 
+  
+  // Fail the build on CI if test.only is present in the code
   forbidOnly: !!process.env.CI,
-
-  // Retries failed tests on CI only.
+  
+  // Retry failed tests on CI to handle flakiness
   retries: process.env.CI ? 2 : 0,
+  
+  // Limit workers on CI for better stability
+  workers: process.env.CI ? 2 : undefined,
 
-  // Limits the number of worker processes on CI for more predictable runs.
-  workers: process.env.CI ? 1 : undefined,
-
-  // Test reporters used during execution.
+  // Test execution reporters
   reporter: [
-    // Prints a live list of executed tests in the terminal.
     ['list'],
-
-    // Generates an HTML report for post-run analysis.
     ['html', { open: 'never' }],
+    // Add GitHub Actions reporter to show test failures directly in the PR
+    process.env.CI ? ['github'] : ['list'],
   ],
 
   use: {
-    // Runs the browser in headless mode by default.
+    // Standard execution settings
     headless: true,
-
-    // Maximum time for each Playwright action such as click() or fill().
     actionTimeout: 10_000,
-
-    // Maximum time for navigation-related operations such as page.goto().
     navigationTimeout: 15_000,
-
-    // Captures a trace on the first retry for failed tests.
     trace: 'on-first-retry',
-
-    // Captures screenshots only for failed tests.
     screenshot: 'only-on-failure',
-
-    // Retains video only for failed tests.
     video: 'retain-on-failure',
+    
+    // Default base URL for navigation (pointing to Storefront)
+    baseURL: process.env.STOREFRONT_URL,
   },
+
+  /**
+   * Projects configuration allows running tests in different browsers
+   * or targeting specific application environments (Storefront vs Dashboard).
+   */
+  projects: [
+    {
+      name: 'storefront-chrome',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.STOREFRONT_URL,
+      },
+      testMatch: /.*storefront.*/,
+    },
+    {
+      name: 'dashboard-chrome',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.DASHBOARD_URL,
+      },
+      testMatch: /.*dashboard.*/,
+    },
+    // API-specific project. Often doesn't require a full browser context.
+    {
+      name: 'api-tests',
+      testMatch: /.*api.*/,
+      use: {
+        baseURL: process.env.API_URL,
+      }
+    },
+  ],
 });
