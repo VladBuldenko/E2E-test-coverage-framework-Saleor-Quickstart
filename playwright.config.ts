@@ -47,8 +47,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     
-    // Default base URL for navigation (pointing to Storefront)
-    baseURL: process.env.STOREFRONT_URL,
+    // Default base URL for navigation (points to Saleor API by default)
+    baseURL: process.env.BASE_URL,
   },
 
   /**
@@ -60,6 +60,7 @@ export default defineConfig({
       name: 'storefront-chrome',
       use: { 
         ...devices['Desktop Chrome'],
+        // Overriding baseURL for Storefront specific tests
         baseURL: process.env.STOREFRONT_URL,
       },
       testMatch: /.*storefront.*/,
@@ -68,16 +69,21 @@ export default defineConfig({
       name: 'dashboard-chrome',
       use: { 
         ...devices['Desktop Chrome'],
+        // Overriding baseURL for Dashboard specific tests
         baseURL: process.env.DASHBOARD_URL,
       },
       testMatch: /.*dashboard.*/,
     },
-    // API-specific project. Often doesn't require a full browser context.
+    /**
+     * API tests target the Core GraphQL API directly.
+     * Use this project for backend-level validation.
+     */
     {
       name: 'api-tests',
       testMatch: /.*api.*/,
       use: {
-        baseURL: process.env.API_URL,
+        // Pointing directly to the GraphQL endpoint
+        baseURL: process.env.BASE_URL,
       }
     },
   ],

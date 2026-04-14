@@ -6,25 +6,29 @@ import { BaseGraphqlClient } from './base-client';
  */
 export class AuthClient extends BaseGraphqlClient {
   
+  constructor() {
+    super(process.env.BASE_URL || '');
+  }
+
   /**
    * Performs a tokenCreate mutation to obtain a JWT access token.
-   * Credentials are pulled directly from environment variables for security.
    * @returns {Promise<string>} The JWT access token.
    */
   async getAdminToken(): Promise<string> {
+    // 1. Get credentials from environment
     const loginEmail = process.env.ADMIN_EMAIL;
     const loginPassword = process.env.ADMIN_PASSWORD;
 
+    // 2. GLOBAL CHECK (Fail Fast): Exit immediately if config is broken
     if (!loginEmail || !loginPassword) {
-      throw new Error('ADMIN_EMAIL or ADMIN_PASSWORD is missing in .env file');
+      throw new Error('CONFIG ERROR: ADMIN_EMAIL or ADMIN_PASSWORD is missing in .env file');
     }
 
-    // This is the standard Saleor mutation for authentication
+    // 3. PREPARE: Define the business logic of the request
     const AUTH_MUTATION = `
       mutation CreateToken($email: String!, $password: String!) {
         tokenCreate(email: $email, password: $password) {
           token
-          refreshToken
           errors {
             field
             message
@@ -38,19 +42,19 @@ export class AuthClient extends BaseGraphqlClient {
       password: loginPassword,
     };
 
-    // We use the inherited 'execute' method from BaseGraphqlClient
+    // 4. EXECUTE: Call the inherited method
     const response = await this.execute(AUTH_MUTATION, variables);
 
-    // GraphQL-level error check for this specific mutation
-    const authErrors = response.tokenCreate.errors;
-    if (authErrors && authErrors.length > 0) {
-      throw new Error(`Authentication failed: ${authErrors[0].message}`);
+    // 5. DATA VALIDATION: Check for GraphQL-level business errors
+    const errors = response?.tokenCreate?.errors;
+    if (errors && errors.length > 0) {
+      throw new Error(`AUTH ERROR: ${errors[0].message}`);
     }
 
-    const token = response.tokenCreate.token;
-
+    // 6. FINAL CHECK: Ensure the token exists
+    const token = response?.tokenCreate?.token;
     if (!token) {
-      throw new Error('Authentication succeeded but no token was returned.');
+      throw new Error('AUTH ERROR: Authentication succeeded but token is null.');
     }
 
     return token;
