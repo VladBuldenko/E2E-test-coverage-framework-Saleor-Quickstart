@@ -1,11 +1,13 @@
 import { test as base } from '@playwright/test';
 import { AuthClient } from '../../src/api-clients/auth-client';
+import { ProductsClient } from '../../src/api-clients/products-client';
 
 /**
  * Definition of the custom fixtures available in the test context.
  */
 type MyFixtures = {
   authClient: AuthClient;
+  productsClient: ProductsClient;
   adminToken: string;
 };
 
@@ -33,6 +35,15 @@ export const test = base.extend<MyFixtures>({
     // Fail Fast: The getAdminToken method already handles configuration and API errors.
     const token = await authClient.getAdminToken();
     await use(token);
+  },
+
+  /**
+   * Provides an instance of ProductsClient.
+   * Configured with the API URL from environment variables.
+   */
+  productsClient: async ({}, use) => {
+    const client = new ProductsClient(process.env.BASE_URL || '');
+    await use(client);
   },
 });
 
