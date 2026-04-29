@@ -1,14 +1,18 @@
 import { test as base } from '@playwright/test';
 import { AuthClient } from '../../src/api-clients/auth-client';
 import { ProductsClient } from '../../src/api-clients/products-client';
+import { CategoriesClient } from '../../src/api-clients/category-client';
 
-/**
+/** 
  * Definition of the custom fixtures available in the test context.
  */
 type MyFixtures = {
   authClient: AuthClient;
   productsClient: ProductsClient;
   adminToken: string;
+  categoriesClient: CategoriesClient;
+
+
 };
 
 /**
@@ -45,6 +49,13 @@ export const test = base.extend<MyFixtures>({
     const client = new ProductsClient(process.env.BASE_URL || '');
     await use(client);
   },
+
+  // Registering the client so Playwright can "inject" it into tests
+categoriesClient: async ({}, use) => {
+    const client = new CategoriesClient(process.env.BASE_URL || '');
+    await use(client);
+  },
+
 });
 
 export { expect } from '@playwright/test';
