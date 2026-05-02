@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/base.fixture';
+import { test, expect } from '../fixtures/base.fixture.js';
 
 test.describe('Saleor Product & Category API', () => {
   

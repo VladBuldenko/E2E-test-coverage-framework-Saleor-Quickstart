@@ -1,4 +1,4 @@
-import { BaseGraphqlClient } from './base-client';
+import { BaseGraphqlClient } from './base-client.js';
 
 /**
  * CategoriesClient handles all Category-related operations in Saleor.

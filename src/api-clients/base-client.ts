@@ -1,74 +1,89 @@
 import { request, APIRequestContext } from '@playwright/test';
+import { ENV } from '../utils/config/env.js';
 
 /**
- * BaseGraphqlClient provides a core interface for interacting with Saleor's GraphQL API.
- * It handles request execution, authorization headers, and multi-layer error validation.
+ * Core abstract class for GraphQL interaction.
+ * Implements a layered validation strategy to distinguish between 
+ * network, transport, and business logic errors.
  */
-export class BaseGraphqlClient {
+export abstract class BaseGraphqlClient {
   /**
-   * Protected access allows child classes (e.g., AuthClient) to access the endpoint.
+   * The API endpoint is resolved from centralized environment configuration.
    */
-  protected readonly endpoint: string;
+  protected readonly endpoint: string = ENV.API_URL;
 
   /**
-   * @param endpoint - The full URL to the GraphQL API (e.g., http://localhost:8000/graphql/).
+   * @param token - Optional administrative JWT. If provided, used as a default 
+   * for all operations within this client instance.
    */
-  constructor(endpoint: string) {
-    this.endpoint = endpoint;
-    
-    // Fail Fast: Validate configuration during instantiation
+  constructor(protected token?: string) {
+    /**
+     * Fail-Fast Principle: Validate configuration at instantiation time 
+     * to avoid cryptic errors during test execution.
+     */
     if (!this.endpoint) {
-      throw new Error('BaseGraphqlClient: API endpoint URL is missing. Check your environment configuration.');
+      throw new Error('BaseGraphqlClient: API_URL is not defined in environment variables.');
     }
   }
 
   /**
-   * Executes a GraphQL operation with built-in error handling.
-   * @param query - The GraphQL query or mutation string.
-   * @param variables - Object containing variables for the operation.
-   * @param token - Optional JWT token for authorized requests.
+   * Orchestrates the execution of a GraphQL operation.
+   * 
+   * @param query - Valid GraphQL query or mutation string.
+   * @param variables - Key-value pairs for GraphQL variables.
+   * @param overrideToken - Specific token to use for this call only (bypasses constructor token).
+   * @returns The 'data' payload extracted from the successful GraphQL response.
+   * @throws {Error} If any layer of validation (HTTP, Network, or GraphQL Logic) fails.
    */
-  async execute(query: string, variables: object = {}, token?: string) {
-    // 1. Initialize Request Context
+  async execute(query: string, variables: object = {}, overrideToken?: string) {
+    const tokenToUse = overrideToken || this.token;
+
+    // Create a dedicated request context for each execution to ensure isolation.
     const context: APIRequestContext = await request.newContext({
       baseURL: this.endpoint,
     });
 
-    // 2. Act: Send the POST request
+    /**
+     * Layer 1: HTTP Transport Execution
+     */
     const response = await context.post('', {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `JWT ${token}` }),
+        /**
+         * Saleor specific: Authorization requires 'JWT' prefix.
+         * Conditional inclusion of the header prevents sending 'Authorization: undefined'.
+         */
+        ...(tokenToUse && { 'Authorization': `JWT ${tokenToUse}` }),
       },
-      data: {
-        query: query,
-        variables: variables,
-      },
+      data: { query, variables },
     });
 
-    // 3. Fail Fast: Check HTTP Transport Layer (Network/Server availability)
+    /**
+     * Layer 2: HTTP Status Validation
+     * Handles non-2xx status codes (e.g., 404 Not Found, 500 Server Error).
+     */
     if (!response.ok()) {
       throw new Error(
-        `HTTP Error: Request failed with status ${response.status()} (${response.statusText()})`
+        `HTTP Transport Error: Received ${response.status()} ${response.statusText()} from ${this.endpoint}`
       );
     }
 
-    // 4. Parse JSON body
     const responseBody = await response.json();
 
     /**
-     * 5. Fail Fast: Check GraphQL Business Logic Layer.
-     * GraphQL returns 200 OK even for failed logic. We must manually check the 'errors' field.
+     * Layer 3: GraphQL Business Logic Validation
+     * Crucial: GraphQL servers often return 200 OK even for failed operations.
+     * We must manually parse the 'errors' array to identify logic failures (e.g., permission denied).
      */
     if (responseBody.errors && responseBody.errors.length > 0) {
       const errorMessage = responseBody.errors
         .map((err: any) => `[Path: ${err.path}] ${err.message}`)
         .join('\n');
       
-      throw new Error(`GraphQL Logic Error: The server returned specific errors:\n${errorMessage}`);
+      throw new Error(`GraphQL Business Logic Error:\n${errorMessage}`);
     }
 
-    // 6. Return clean data if all checks passed
+    // Success path: Return clean data to the high-level client.
     return responseBody.data;
   }
 }

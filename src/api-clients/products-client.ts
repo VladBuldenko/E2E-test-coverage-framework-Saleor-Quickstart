@@ -1,4 +1,4 @@
-import { BaseGraphqlClient } from './base-client';
+import { BaseGraphqlClient } from './base-client.js';
 
 /**
  * Interface defining the shape of a basic Product object.

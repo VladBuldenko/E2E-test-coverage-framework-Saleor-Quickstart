@@ -1,30 +1,32 @@
-import { BaseGraphqlClient } from './base-client';
+import { BaseGraphqlClient } from './base-client.js';
+import { ENV } from '../utils/config/env.js'; 
 
 /**
- * AuthClient manages authentication procedures with Saleor.
- * It extends BaseGraphqlClient to leverage centralized GraphQL execution logic.
+ * Interface for the tokenCreate response structure.
+ * Helps to avoid 'any' and provides autocomplete.
  */
+interface AuthResponse {
+  tokenCreate: {
+    token: string | null;
+    errors: Array<{ field: string; message: string }>;
+  };
+}
+
 export class AuthClient extends BaseGraphqlClient {
   
-  constructor() {
-    super(process.env.BASE_URL || '');
+  // Передаем URL снаружи, это делает класс независимым от окружения
+  constructor(endpoint: string = ENV.API_URL) {
+    super(endpoint);
   }
 
-  /**
-   * Performs a tokenCreate mutation to obtain a JWT access token.
-   * @returns {Promise<string>} The JWT access token.
-   */
   async getAdminToken(): Promise<string> {
-    // 1. Get credentials from environment
-    const loginEmail = process.env.ADMIN_EMAIL;
-    const loginPassword = process.env.ADMIN_PASSWORD;
+    const loginEmail = ENV.ADMIN_EMAIL;
+    const loginPassword = ENV.ADMIN_PASSWORD;
 
-    // 2. GLOBAL CHECK (Fail Fast): Exit immediately if config is broken
     if (!loginEmail || !loginPassword) {
-      throw new Error('CONFIG ERROR: ADMIN_EMAIL or ADMIN_PASSWORD is missing in .env file');
+      throw new Error('CONFIG ERROR: Credentials missing in ENV object');
     }
 
-    // 3. PREPARE: Define the business logic of the request
     const AUTH_MUTATION = `
       mutation CreateToken($email: String!, $password: String!) {
         tokenCreate(email: $email, password: $password) {
@@ -37,24 +39,20 @@ export class AuthClient extends BaseGraphqlClient {
       }
     `;
 
-    const variables = {
+    // Теперь мы говорим TS, что ответ будет соответствовать AuthResponse
+    const response = await this.execute(AUTH_MUTATION, {
       email: loginEmail,
       password: loginPassword,
-    };
+    }) as AuthResponse;
 
-    // 4. EXECUTE: Call the inherited method
-    const response = await this.execute(AUTH_MUTATION, variables);
+    const { token, errors } = response.tokenCreate;
 
-    // 5. DATA VALIDATION: Check for GraphQL-level business errors
-    const errors = response?.tokenCreate?.errors;
     if (errors && errors.length > 0) {
-      throw new Error(`AUTH ERROR: ${errors[0].message}`);
+      throw new Error(`AUTH ERROR: [${errors[0].field}] ${errors[0].message}`);
     }
 
-    // 6. FINAL CHECK: Ensure the token exists
-    const token = response?.tokenCreate?.token;
     if (!token) {
-      throw new Error('AUTH ERROR: Authentication succeeded but token is null.');
+      throw new Error('AUTH ERROR: Token is missing in the response.');
     }
 
     return token;
