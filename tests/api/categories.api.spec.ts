@@ -1,30 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import { test, expect } from '../fixtures/base.fixture.js';
-import { CategoryBuilder } from '../../src/data/builders/category.builder.js';
 
-test.describe('Category API Operations', () => {
-    
-    test('Should successfully create a valid category with random data', async ({ categoriesClient }) => {
-        // 1. Arrange: Generate unique dynamic data
-        const newCategoryData = new CategoryBuilder().build();
+test('admin can create and view a category', async ({ categoriesClient }) => {
+  const name = `QA Category ${randomUUID().slice(0, 8)}`;
+  const created = await test.step('Create a category', () =>
+    categoriesClient.createCategory(name),
+  );
 
-        // 2. Act: Send the mutation to Saleor API
-        const response = await categoriesClient.createCategory(newCategoryData.name);
-
-        // 3. Assert: Verify the response matches our generated data
-        expect(response.id).toBeDefined();
-        expect(response.name).toEqual(newCategoryData.name);
+  try {
+    await test.step('Open the new category', async () => {
+      const category = await categoriesClient.getCategory(created.id);
+      expect(category).toEqual({ id: created.id, name });
     });
-
-    test('Should handle explicit field overrides', async ({ categoriesClient }) => {
-        // 1. Arrange: Generate random data but override the name
-        const specificData = new CategoryBuilder()
-            .withName('Extremely Specific Tech Gadgets')
-            .build();
-
-        // 2. Act
-        const response = await categoriesClient.createCategory(specificData.name);
-
-        // 3. Assert
-        expect(response.name).toEqual('Extremely Specific Tech Gadgets');
-    });
+  } finally {
+    // Leave the catalog as it was before the test.
+    await categoriesClient.deleteCategory(created.id);
+  }
 });
