@@ -1,50 +1,44 @@
 import { BaseGraphqlClient } from './base-client.js';
+import { ENV } from '../utils/config/env.js';
 
-/**
- * Interface defining the shape of a basic Product object.
- * This acts as a 'contract' for our data.
- */
-export interface ProductBasic {
+type Variant = { id: string; name: string };
+
+export type ProductSummary = {
   id: string;
   name: string;
   slug: string;
-}
+  variants: Variant[];
+};
 
-/**
- * ProductsClient handles all product-related API calls.
- */
 export class ProductsClient extends BaseGraphqlClient {
-  
-  private readonly GET_PRODUCTS_QUERY = `
-    query GetProducts($first: Int, $channel: String!) {
-      products(first: $first, channel: $channel) {
-        edges {
-          node {
-            id
-            name
-            slug
+  async listProducts(first = 20): Promise<ProductSummary[]> {
+    const data = await this.execute<{
+      products: { edges: Array<{ node: ProductSummary }> };
+    }>(`
+      query BrowseProducts($first: Int!, $channel: String!) {
+        products(first: $first, channel: $channel) {
+          edges {
+            node { id name slug variants { id name } }
           }
         }
       }
-    }
-  `;
+    `, { first, channel: ENV.CHANNEL });
 
-  /**
-   * Fetches a list of products.
-   * @param count - Number of products to return.
-   */
-  async getProducts(count: number = 5): Promise<ProductBasic[]> {
-    const variables = { 
-      first: count, 
-      channel: "default-channel" 
-    };
+    return data.products.edges.map(edge => edge.node);
+  }
 
-    const response = await this.execute(this.GET_PRODUCTS_QUERY, variables);
-    
-    if (!response?.products?.edges) {
-      throw new Error('ProductsClient: Invalid response structure.');
-    }
+  async getProduct(id: string): Promise<ProductSummary | null> {
+    const data = await this.execute<{ product: ProductSummary | null }>(`
+      query ViewProduct($id: ID!, $channel: String!) {
+        product(id: $id, channel: $channel) {
+          id
+          name
+          slug
+          variants { id name }
+        }
+      }
+    `, { id, channel: ENV.CHANNEL });
 
-    return response.products.edges.map((edge: any) => edge.node);
+    return data.product;
   }
 }

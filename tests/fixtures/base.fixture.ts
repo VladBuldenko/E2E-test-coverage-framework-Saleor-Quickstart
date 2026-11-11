@@ -1,59 +1,33 @@
 import { test as base } from '@playwright/test';
 import { AuthClient } from '../../src/api-clients/auth-client.js';
-import { ProductsClient } from '../../src/api-clients/products-client.js';
 import { CategoriesClient } from '../../src/api-clients/category-client.js';
+import { CheckoutClient } from '../../src/api-clients/checkout-client.js';
+import { ProductsClient } from '../../src/api-clients/products-client.js';
 
-/** 
- * Definition of the custom fixtures available in the test context.
- */
-type MyFixtures = {
+type Fixtures = {
   authClient: AuthClient;
-  productsClient: ProductsClient;
-  adminToken: string;
   categoriesClient: CategoriesClient;
+  checkoutClient: CheckoutClient;
+  productsClient: ProductsClient;
 };
 
-/**
- * Extending the base Playwright test with custom domain-specific fixtures.
- * This allows us to inject pre-configured clients and tokens directly into tests.
- */
-export const test = base.extend<MyFixtures>({
-  
-  /**
-   * authClient fixture: Provides a fresh instance of AuthClient for each test.
-   * It automatically picks up configuration from environment variables via its constructor.
-   */
-  authClient: async ({}, use) => {
-    const client = new AuthClient();
-    await use(client);
+export const test = base.extend<Fixtures>({
+  authClient: async ({ request }, use) => {
+    await use(new AuthClient(request));
   },
 
-  /**
-   * adminToken fixture: Depends on 'authClient' to retrieve a valid JWT token.
-   * This fixture simplifies tests by providing the token directly, 
-   * eliminating the need to repeat login logic in every spec file.
-   */
-  adminToken: async ({ authClient }, use) => {
-    // Fail Fast: The getAdminToken method already handles configuration and API errors.
+  categoriesClient: async ({ request, authClient }, use) => {
     const token = await authClient.getAdminToken();
-    await use(token);
+    await use(new CategoriesClient(request, token));
   },
 
-  /**
-   * Provides an instance of ProductsClient.
-   * Configured with the API URL from environment variables.
-   */
-  productsClient: async ({}, use) => {
-    const client = new ProductsClient(process.env.BASE_URL || '');
-    await use(client);
+  checkoutClient: async ({ request }, use) => {
+    await use(new CheckoutClient(request));
   },
 
-  // Registering the client so Playwright can "inject" it into tests
-categoriesClient: async ({adminToken }, use) => {
-    const client = new CategoriesClient(adminToken); 
-    await use(client);
+  productsClient: async ({ request }, use) => {
+    await use(new ProductsClient(request));
   },
-
 });
 
 export { expect } from '@playwright/test';
