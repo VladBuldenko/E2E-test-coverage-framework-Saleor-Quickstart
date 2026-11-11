@@ -1,53 +1,58 @@
 import { BaseGraphqlClient } from './base-client.js';
 
-/**
- * CategoriesClient handles all Category-related operations in Saleor.
- * It follows the API Object Pattern to decouple test logic from GraphQL implementation.
- */
+export type Category = {
+  id: string;
+  name: string;
+};
+
+type MutationResult = {
+  errors: Array<{ message: string | null }>;
+};
+
+function checkErrors(operation: string, errors: MutationResult['errors']): void {
+  if (errors.length) {
+    throw new Error(`${operation}: ${errors.map(error => error.message).join('; ')}`);
+  }
+}
+
 export class CategoriesClient extends BaseGraphqlClient {
-  
-  /**
-   * GraphQL Mutation for creating a category.
-   * We use variables ($name) to make the query reusable and secure.
-   */
-  private readonly CREATE_CATEGORY_MUTATION = `
-    mutation CreateCategory($name: String!) {
-      categoryCreate(input: { name: $name }) {
-        category {
-          id
-          name
-        }
-        errors {
-          field
-          message
+  async createCategory(name: string): Promise<Category> {
+    const data = await this.execute<{
+      categoryCreate: MutationResult & { category: Category | null };
+    }>(`
+      mutation CreateCategory($name: String!) {
+        categoryCreate(input: { name: $name }) {
+          category { id name }
+          errors { message }
         }
       }
-    }
-  `;
+    `, { name });
 
-  /**
-   * Sends a mutation to create a new category.
-   * @param name - The unique name for the new category.
-   * @param token - Admin authorization token.
-   * @returns The created category object (id and name).
-   */
-  async createCategory(name: string, token?: string) {
-    // 1. Execute the mutation using the inherited 'execute' method
-    const response = await this.execute(
-      this.CREATE_CATEGORY_MUTATION, 
-      { name }, 
-      token
-    );
+    checkErrors('Create category', data.categoryCreate.errors);
+    if (!data.categoryCreate.category) throw new Error('Created category is missing');
+    return data.categoryCreate.category;
+  }
 
-    // 2. Business Logic Validation:
-    // Saleor might return a 200 OK, but with errors in the body (e.g., "Category already exists").
-    // We must check the 'errors' array specifically.
-    if (response.categoryCreate.errors && response.categoryCreate.errors.length > 0) {
-      const errorMsg = response.categoryCreate.errors[0].message;
-      throw new Error(`[CategoriesClient] Failed to create category: ${errorMsg}`);
-    }
+  async getCategory(id: string): Promise<Category | null> {
+    const data = await this.execute<{ category: Category | null }>(`
+      query GetCategory($id: ID!) {
+        category(id: $id) { id name }
+      }
+    `, { id });
+    return data.category;
+  }
 
-    // 3. Return only the relevant data to the test
-    return response.categoryCreate.category;
+  async deleteCategory(id: string): Promise<void> {
+    const data = await this.execute<{
+      categoryDelete: MutationResult;
+    }>(`
+      mutation DeleteCategory($id: ID!) {
+        categoryDelete(id: $id) {
+          errors { message }
+        }
+      }
+    `, { id });
+
+    checkErrors('Delete category', data.categoryDelete.errors);
   }
 }
