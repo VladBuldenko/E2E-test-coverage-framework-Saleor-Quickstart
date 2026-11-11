@@ -1,19 +1,20 @@
-# Test Coverage Matrix
+# Current Coverage
 
-## 1. GraphQL API (Smoke & Functional)
-- [ ] **Auth:** `tokenCreate` with valid credentials returns a 128-char JWT.
-- [ ] **Auth:** `tokenCreate` with invalid credentials returns "Account not found" error.
-- [ ] **Products:** `products` query returns at least 1 product with `id`, `name`, and `slug`.
-- [ ] **System:** Health check query returns server version and status.
+These are **implemented test scenarios**, not confirmed live-environment results.
 
-## 2. Saleor Dashboard (Admin UI)
-- [ ] **Auth:** Successful login redirects to the main dashboard stats page.
-- [ ] **Auth:** Error message appears on the login screen for locked/invalid accounts.
-- [ ] **Navigation:** Sidebar links for "Orders", "Products", and "Customers" are clickable and lead to correct URLs.
-- [ ] **Inventory:** Product list displays the correct stock levels for a specific "vape" or "t-shirt" item.
+| Scenario | File | Type |
+| --- | --- | --- |
+| Staff sign-in succeeds | [auth.api.spec.ts](../tests/api/auth.api.spec.ts) | API |
+| Invalid sign-in is rejected | [auth.api.spec.ts](../tests/api/auth.api.spec.ts) | API |
+| Admin creates and retrieves a category, then cleans up | [categories.api.spec.ts](../tests/api/categories.api.spec.ts) | API |
+| Shopper browses catalog and views details | [products.api.spec.ts](../tests/api/products.api.spec.ts) | API |
+| Shopper creates checkout with one product variant | [checkout.api.spec.ts](../tests/api/checkout.api.spec.ts) | API |
 
-## 3. Saleor Storefront (User UI)
-- [ ] **Home:** Homepage loads in under 3 seconds with a 200 OK status.
-- [ ] **Search:** Searching for "Bean juice" returns relevant search results.
-- [ ] **Search:** "No results found" message appears for "XyZ123" query.
-- [ ] **Cart:** Adding a product increases the cart counter in the header.
+## Not implemented
+
+- Dashboard UI login and category management
+- Storefront UI product browsing and cart
+- Payment and order lifecycle
+- Cross-browser UI coverage
+
+Runtime results must come from a local Saleor run of `npm run test:api`. GitHub Actions checks compilation and test discovery only.
