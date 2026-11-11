@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { test, expect } from '../fixtures/base.fixture.js';
+import { newCategoryName } from '../../src/data/builders/category.builder.js';
 
 test('admin can create and view a category', async ({ categoriesClient }) => {
-  const name = `QA Category ${randomUUID().slice(0, 8)}`;
+  const name = newCategoryName();
   const created = await test.step('Create a category', () =>
     categoriesClient.createCategory(name),
   );
