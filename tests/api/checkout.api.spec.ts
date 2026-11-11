@@ -4,23 +4,20 @@ test('shopper can add a product variant to a new checkout', async ({
   productsClient,
   checkoutClient,
 }) => {
-  const products = await test.step('Browse available products', () =>
+  const products = await test.step('Browse published products', () =>
     productsClient.listProducts(),
   );
 
-  expect(products.length, 'Seed a published product with a purchasable variant').toBeGreaterThan(0);
+  const selected = products.find(product => product.variants.length > 0);
+  expect(selected, 'Seed a published product with a purchasable variant').toBeDefined();
 
-  // Use a real product from this test environment, not a hardcoded ID.
-  let variantId: string | undefined;
-  for (const product of products) {
-    const details = await productsClient.getProduct(product.id);
-    if (details?.variants.length) {
-      variantId = details.variants[0].id;
-      break;
-    }
-  }
+  const product = await test.step('Open the selected product', () =>
+    productsClient.getProduct(selected!.id),
+  );
+  expect(product?.id).toBe(selected!.id);
 
-  expect(variantId, 'Seed at least one published product variant').toBeTruthy();
+  const variantId = product?.variants[0]?.id;
+  expect(variantId, 'Selected product must have a purchasable variant').toBeTruthy();
 
   const checkout = await test.step('Add one item to the cart', () =>
     checkoutClient.addToCart(variantId!, 1),
