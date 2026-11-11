@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures/base.fixture.js';
-import { ENV } from '../../src/utils/config/env.js';
 
 test('admin can sign in with valid credentials', async ({ authClient }) => {
   const token = await authClient.getAdminToken();
