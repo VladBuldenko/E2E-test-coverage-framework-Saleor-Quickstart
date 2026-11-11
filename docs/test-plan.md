@@ -1,59 +1,33 @@
-# Test Plan: Saleor Quickstart Automation
+# Test Plan
 
-## 1. Introduction
-This Test Plan describes the specific testing activities for the Saleor Quickstart project. It details the scope, features to be tested, and the expected deliverables. 
+**System under test:** Local Saleor Quickstart GraphQL API
 
-**Reference:** All activities must comply with the guidelines defined in `docs/test-strategy.md`.
+## Entry conditions
 
-## 2. Test Scope
-The testing efforts will be focused on the three main entry points of the Saleor ecosystem:
-- **Saleor Storefront:** Customer-facing web application.
-- **Saleor Dashboard:** Administrative management interface.
-- **GraphQL API:** The data layer connecting all services.
+- Saleor API responds at `API_URL`.
+- `SALEOR_CHANNEL` exists and has a published, purchasable product variant.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` belong to a staff user allowed to manage categories.
+- The instance is isolated and disposable.
 
-## 3. Features to be Tested
+## Scenarios
 
-### 3.1 GraphQL API (The "API-First" Layer)
-- **Authentication:** Validating `tokenCreate` mutations and JWT handling.
-- **Product Management:** Querying product lists, variants, and stock levels.
-- **Health Checks:** Ensuring the `/graphql/` endpoint is responsive.
+| Priority | Area | Expected outcome |
+| --- | --- | --- |
+| P0 | Staff sign-in | Valid credentials return a token |
+| P0 | Invalid sign-in | Unknown user is rejected |
+| P0 | Admin category | Create, retrieve, and remove a category |
+| P0 | Catalog browsing | Published product listing and selected product details agree |
+| P0 | Add to cart | Creating an anonymous checkout produces exactly one requested line |
 
-### 3.2 Saleor Dashboard (Admin Operations)
-- **Login Flow:** Successful and failed authentication via UI.
-- **Navigation:** Accessibility of the Products, Categories, and Orders sections.
-- **Product Visibility:** Verifying that products created via API appear correctly in the admin list.
+## Exit conditions
 
-### 3.3 Saleor Storefront (Customer Journey)
-- **Product Catalog:** Browsing products and categories.
-- **Search Functionality:** Searching for existing and non-existing items.
-- **Shopping Cart:** Adding/removing items and price calculations (Basic).
+- No failed P0 scenarios in the local test environment.
+- Created categories are removed by the tests.
+- Failures are understandable from the assertion and HTML report.
+- No retries used to turn failures into passes.
 
-## 4. Test Environments
-- **Environment:** Local Saleor Quickstart (Docker-based).
-- **URLs:** Defined in `.env` (Storefront, Dashboard, API).
-- **Browsers:** Primary focus on Chromium (as per Strategy).
+## Out of scope for this slice
 
-## 5. Entry & Exit Criteria
+Browser UI testing, payments, order placement, refunds, visual regression, performance testing, and security scanning. These need their own verified test environments and scenarios.
 
-### 5.1 Entry Criteria
-- Automation framework structure (`src/` and `tests/`) is initialized.
-- Saleor Quickstart is running and accessible locally.
-- Admin credentials and API tokens are configured in `.env`.
-
-### 5.2 Exit Criteria
-- **Smoke Suite:** 100% pass rate for critical availability checks.
-- **Core Functional:** All planned test cases for Auth and Search are automated and passing.
-- **Reporting:** HTML report is generated and contains evidence for all executed tests.
-
-## 6. Deliverables
-- **Test Automation Code:** Residing in the `tests/` and `src/` directories.
-- **Test Strategy:** Documented in `docs/test-strategy.md`.
-- **Test Reports:** Playwright HTML reports including traces and screenshots for failures.
-- **CI/CD Pipeline:** GitHub Actions workflow for automated execution.
-
-## 7. Risks & Mitigations
-| Risk | Mitigation |
-| :--- | :--- |
-| Saleor environment instability | Use `expect.poll` for retrying flaky API responses. |
-| Frequent UI changes in Saleor | Use strict `data-testid` selectors to minimize POM maintenance. |
-| Database pollution | Implement strict API-based cleanup in `afterEach` hooks. |
+The GitHub Actions workflow validates code structure and test discovery only; it is **not** evidence that Saleor integration tests passed.
